@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Advanced Code Compiler</title>
+  <style>
+    :root {
+      --primary-color: #1e1e1e;
+      --secondary-color: #252526;
+      --accent-color: #007acc;
+      --text-color: #d4d4d4;
+      --border-color: #454545;
+      --success-color: #4CAF50;
+      --error-color: #f44336;
+      --warning-color: #ff9800;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Consolas', 'Courier New', monospace;
+      background-color: var(--primary-color);
+      color: var(--text-color);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .header {
+      background-color: var(--secondary-color);
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .logo {
+      font-weight: bold;
+      color: var(--accent-color);
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-icon {
+      width: 20px;
+      height: 20px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    button {
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    button:hover {
+      background-color: #0062a3;
+    }
+
+    button.secondary {
+      background-color: var(--secondary-color);
+      border: 1px solid var(--border-color);
+    }
+
+    button.secondary:hover {
+      background-color: #2d2d2d;
+    }
+
+    .container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .editor-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border-color);
+      position: relative;
+    }
+
+    .editor-tabs {
+      display: flex;
+      background-color: var(--secondary-color);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .editor-tab {
+      padding: 8px 15px;
+      cursor: pointer;
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.9rem;
+    }
+
+    .editor-tab.active {
+      background-color: var(--primary-color);
+      color: var(--accent-color);
+    }
+
+    .editor-tab .tab-icon {
+      width: 14px;
+      height: 14px;
+    }
+
+    .code-editor {
+      flex: 1;
+      display: none;
+      background-color: var(--primary-color);
+      color: var(--text-color);
+      border: none;
+      resize: none;
+      padding: 10px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.5;
+      tab-size: 4;
+    }
+
+    .code-editor:focus {
+      outline: none;
+    }
+
+    .code-editor.active {
+      display: block;
+    }
+
+    .preview-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .preview-header {
+      padding: 10px;
+      background-color: var(--secondary-color);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .preview {
+      flex: 1;
+      border: none;
+      background-color: white;
+    }
+
+    .resize-handle {
+      width: 5px;
+      background-color: var(--border-color);
+      cursor: col-resize;
+      transition: background-color 0.2s;
+    }
+
+    .resize-handle:hover {
+      background-color: var(--accent-color);
+    }
+
+    .status-bar {
+      background-color: var(--secondary-color);
+      padding: 5px 10px;
+      font-size: 0.8rem;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    select {
+      background-color: var(--secondary-color);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 5px;
+      font-family: inherit;
+      min-width: 120px;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: var(--accent-color);
+    }
+
+    /* Console styles */
+    .console {
+      height: 150px;
+      background-color: var(--secondary-color);
+      border-top: 1px solid var(--border-color);
+      overflow-y: auto;
+      padding: 10px;
+      font-family: monospace;
+      display: none;
+      font-size: 0.85rem;
+    }
+
+    .console.active {
+      display: block;
+    }
+
+    .console-line {
+      margin-bottom: 5px;
+      white-space: pre-wrap;
+      line-height: 1.4;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .console-line::before {
+      content: '>';
+      color: var(--accent-color);
+    }
+
+    .console-error {
+      color: var(--error-color);
+    }
+
+    .console-log {
+      color: var(--text-color);
+    }
+
+    .console-warn {
+      color: var(--warning-color);
+    }
+
+    .console-info {
+      color: var(--accent-color);
+    }
+
+    .console-clear {
+      padding: 5px 10px;
+      background-color: var(--secondary-color);
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: auto;
+      font-size: 0.8rem;
+    }
+
+    .console-clear:hover {
+      background-color: #2d2d2d;
+    }
+
+    /* Tooltip */
+    .tooltip {
+      position: relative;
+      display: inline-block;
+    }
+
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      width: 120px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 5px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      margin-left: -60px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 0.8rem;
+    }
+
+    .tooltip:hover .tooltiptext {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    /* Notifications */
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 15px;
+      border-radius: 4px;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transform: translateX(200%);
+      transition: transform 0.3s ease;
+      z-index: 1000;
+      max-width: 300px;
+    }
+
+    .notification.show {
+      transform: translateX(0);
+    }
+
+    .notification.success {
+      background-color: var(--success-color);
+    }
+
+    .notification.error {
+      background-color: var(--error-color);
+    }
+
+    .notification.warning {
+      background-color: var(--warning-color);
+    }
+
+    .notification-icon {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Responsive layout */
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+      }
+      .editor-container {
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+      }
+      .resize-handle {
+        width: 100%;
+        height: 5px;
+        cursor: row-resize;
+      }
+      .controls {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      button,
+      select {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+      }
+    }
+
+    /* Animation */
+    @keyframes pulse {
+      0% { opacity: 0.6; }
+      50% { opacity: 1; }
+      100% { opacity: 0.6; }
+    }
+
+    .pulse {
+      animation: pulse 1.5s infinite;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M16 13H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M16 17H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M10 9H9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>CodeCompiler Pro</span>
+    </div>
+    <div class="controls">
+      <button id="run-btn" class="tooltip">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M5 3L19 12L5 21V3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Run
+        <span class="tooltiptext">Ctrl+Enter</span>
+      </button>
+      <button id="console-btn" class="secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 17L10 11L4 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 19H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Console
+      </button>
+      <select id="theme-selector">
+        <option value="dark">Dark Theme</option>
+        <option value="light">Light Theme</option>
+        <option value="monokai">Monokai</option>
+        <option value="solarized">Solarized</option>
+      </select>
+      <button id="save-btn" class="secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16L21 8V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M17 21V13H7V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M7 3V8H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Save
+      </button>
+      <button id="load-btn" class="secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Load
+      </button>
+             <button id="refresh-btn" class="secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M23 4V10H17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M1 20V14H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M3.51 9C4.01717 7.56678 4.87913 6.2854 6.01547 5.27542C7.1518 4.26543 8.52547 3.55976 10 3.22492C11.4745 2.89009 13.0046 2.9372 14.4556 3.36198C15.9066 3.78675 17.2279 4.57451 18.29 5.65L23 10M1 14L5.71 18.35C6.7721 19.4255 8.09344 20.2132 9.54444 20.638C10.9954 21.0628 12.5255 21.1099 14 20.7751C15.4745 20.4402 16.8482 19.7346 17.9845 18.7246C19.1209 17.7146 19.9828 16.4332 20.49 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Refresh
+          </button>
+               <button id="fullscreen-btn" class="secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 3H5C4.46957 3 3.96086 3.21071 3.58579 3.58579C3.21071 3.96086 3 4.46957 3 5V8M21 8V5C21 4.46957 20.7893 3.96086 20.4142 3.58579C20.0391 3.21071 19.5304 3 19 3H16M16 21H19C19.5304 21 20.0391 20.7893 20.4142 20.4142C20.7893 20.0391 21 19.5304 21 19V16M3 16V19C3 19.5304 3.21071 20.0391 3.58579 20.4142C3.96086 20.7893 4.46957 21 5 21H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Fullscreen
+          </button>
+      <button id="export-btn" class="secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Export
+      </button>
+    </div>
+  </div>
+
+  <!-- Editor & Preview -->
+  <div class="container">
+    <div class="editor-container">
+      <div class="editor-tabs">
+        <div class="editor-tab active" data-target="html-editor">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 3H20L18.5 19L12 21L5.5 19L4 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M17 7H12.5L12 10H16.5L16 17L12 18.5L8 17L7.75 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          HTML
+        </div>
+        <div class="editor-tab" data-target="css-editor">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 3L4 7L8 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M16 21L20 17L16 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 21L16 3L12 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          CSS
+        </div>
+        <div class="editor-tab" data-target="js-editor">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L14 7L19 7L15 10L17 15L12 12L7 15L9 10L5 7L10 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          JavaScript
+        </div>
+      </div>
+      <textarea id="html-editor" class="code-editor active" placeholder="Enter HTML code here..."></textarea>
+      <textarea id="css-editor" class="code-editor" placeholder="Enter CSS code here..."></textarea>
+      <textarea id="js-editor" class="code-editor" placeholder="Enter JavaScript code here..."></textarea>
+    </div>
+      <div class="resize-handle" id="resize-handle"></div>
+    <div class="preview-container">
+    
+      <iframe id="preview" class="preview"></iframe>
+      <div id="console" class="console">
+        <button id="clear-console" class="console-clear">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status bar
+  <div class="status-bar">
+    <div id="status-message">Ready</div>
+    <div>
+    <span id="line-col">Line: 1, Col: 1</span>
+     <span id="file-size"> | 0 KB</span>
+    </div>
+  </div>
+ -->
+  <!-- Notification -->
+  <div id="notification" class="notification">
+    <svg class="notification-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M22 11.08V12C21.9988 14.1564 21.3005 16.2547 20.0093 17.9818C18.7182 19.709 16.9033 20.9725 14.8354 21.5839C12.7674 22.1953 10.5573 22.1219 8.53447 21.3746C6.51168 20.6273 4.78465 19.2461 3.61096 17.4371C2.43727 15.628 1.87979 13.4881 2.02168 11.3363C2.16356 9.18455 2.99721 7.13631 4.39828 5.49706C5.79935 3.85781 7.69279 2.71537 9.79619 2.24013C11.8996 1.7649 14.1003 1.98232 16.07 2.86" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M22 4L12 14.01L9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span id="notification-message">Operation successful</span>
+  </div>
+
+  <!-- JavaScript -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // DOM Elements
+      const htmlEditor = document.getElementById('html-editor');
+      const cssEditor = document.getElementById('css-editor');
+      const jsEditor = document.getElementById('js-editor');
+      const preview = document.getElementById('preview');
+      const consoleOutput = document.getElementById('console');
+      const runBtn = document.getElementById('run-btn');
+      const refreshBtn = document.getElementById('refresh-btn');
+      const fullscreenBtn = document.getElementById('fullscreen-btn');
+      const consoleBtn = document.getElementById('console-btn');
+      const themeSelector = document.getElementById('theme-selector');
+      const saveBtn = document.getElementById('save-btn');
+      const loadBtn = document.getElementById('load-btn');
+      const exportBtn = document.getElementById('export-btn');
+      const clearConsoleBtn = document.getElementById('clear-console');
+      const editorTabs = document.querySelectorAll('.editor-tab');
+      const codeEditors = document.querySelectorAll('.code-editor');
+    // const statusMessage = document.getElementById('status-message');
+   //   const lineCol = document.getElementById('line-col');
+      const resizeHandle = document.getElementById('resize-handle');
+      const notification = document.getElementById('notification');
+      const notificationMessage = document.getElementById('notification-message');
+
+      // Default code
+      const defaultHTML = `<!DOCTYPE html>
+<html>
+<head>
+    <title>My Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome to CodeCompiler</h1>
+    <p>Start coding and see the live preview!</p>
+    <button id="demo-btn">Click Me</button>
+    <script>
+        document.getElementById('demo-btn').addEventListener('click', function() {
+            alert('Button clicked!');
+        });
+    <\/script>
+</body>
+</html>`;
+      const defaultCSS = `/* Add your CSS styles here */
+h1 {
+    text-align: center;
+}
+button {
+    background-color: #007acc;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: block;
+    margin: 20px auto;
+}
+button:hover {
+    background-color: #0062a3;
+}`;
+      const defaultJS = `// Add your JavaScript here
+console.log('Hello from the console!');
+// Example function
+function showMessage() {
+    console.log('Function executed!');
+}
+// Override console methods to capture output
+const originalConsole = {
+    log: console.log,
+    error: console.error,
+    warn: console.warn,
+    info: console.info
+};
+console.log = function(...args) {
+    originalConsole.log.apply(console, args);
+    logToConsole('log', args);
+};
+console.error = function(...args) {
+    originalConsole.error.apply(console, args);
+    logToConsole('error', args);
+};
+console.warn = function(...args) {
+    originalConsole.warn.apply(console, args);
+    logToConsole('warn', args);
+};
+console.info = function(...args) {
+    originalConsole.info.apply(console, args);
+    logToConsole('info', args);
+};
+function logToConsole(type, args) {
+    const message = args.map(arg => {
+        if (typeof arg === 'object') {
+            try {
+                return JSON.stringify(arg, null, 2);
+            } catch (e) {
+                return arg.toString();
+            }
+        }
+        return arg;
+    }).join(' ');
+    const consoleLine = document.createElement('div');
+    consoleLine.className = \`console-line console-\${type}\`;
+    consoleLine.textContent = message;
+    consoleOutput.insertBefore(consoleLine, clearConsoleBtn);
+    consoleOutput.scrollTop = consoleOutput.scrollHeight;
+}`;
+
+      // Initialize editors with default content
+      htmlEditor.value = defaultHTML;
+      cssEditor.value = defaultCSS;
+      jsEditor.value = defaultJS;
+
+      // Show notification
+      function showNotification(message, type = 'success', duration = 3000) {
+        notification.className = `notification ${type}`;
+        notificationMessage.textContent = message;
+        notification.classList.add('show');
+        setTimeout(() => {
+          notification.classList.remove('show');
+        }, duration);
+      }
+
+      // Tab switching functionality
+      editorTabs.forEach(tab => {
+        tab.addEventListener('click', function () {
+          editorTabs.forEach(t => t.classList.remove('active'));
+          codeEditors.forEach(e => e.classList.remove('active'));
+          const target = this.getAttribute('data-target');
+          this.classList.add('active');
+          document.getElementById(target).classList.add('active');
+          updateCursorPosition();
+        });
+      });
+
+      // Run/Refresh functionality
+      function runCode() {
+        const html = htmlEditor.value;
+        const css = cssEditor.value;
+        const js = jsEditor.value;
+
+    //    statusMessage.textContent = 'Running code...';
+  //      statusMessage.classList.add('pulse');
+
+        try {
+          const fullHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <style>${css}</style>
+            </head>
+            <body>
+              ${html}
+              <script>
+                try {
+                  ${js}
+                } catch (e) {
+                  console.error('Runtime error:', e);
+                }
+              <\/script>
+            </body>
+            </html>
+          `;
+          preview.srcdoc = fullHtml;
+
+          setTimeout(() => {
+            statusMessage.textContent = 'Code executed successfully';
+            statusMessage.classList.remove('pulse');
+            showNotification('Code executed successfully');
+          }, 300);
+
+          updateFileSize();
+
+        } catch (e) {
+          statusMessage.textContent = 'Error executing code';
+          statusMessage.classList.remove('pulse');
+          showNotification('Error executing code: ' + e.message, 'error');
+          console.error('Compilation error:', e);
+        }
+      }
+
+      runBtn.addEventListener('click', runCode);
+      refreshBtn.addEventListener('click', runCode)
+      fullscreenBtn.addEventListener('click',runCode);
+
+      // Fullscreen
+      fullscreenBtn.addEventListener('click', function () {
+        if (preview.requestFullscreen) {
+          preview.requestFullscreen();
+        } else if (preview.webkitRequestFullscreen) {
+          preview.webkitRequestFullscreen();
+        } else if (preview.msRequestFullscreen) {
+          preview.msRequestFullscreen();
+        }
+      });
+
+      // Console toggle
+      consoleBtn.addEventListener('click', function () {
+        consoleOutput.classList.toggle('active');
+        updateConsoleButtonText();
+      });
+
+      function updateConsoleButtonText() {
+        const isConsoleVisible = consoleOutput.classList.contains('active');
+        consoleBtn.innerHTML = isConsoleVisible ?
+          `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 17L10 11L4 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 19H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg> Console` :
+          `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 17L10 11L4 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg> Console`;
+      }
+
+      // Clear console
+      clearConsoleBtn.addEventListener('click', function () {
+        while (consoleOutput.firstChild !== clearConsoleBtn) {
+          consoleOutput.removeChild(consoleOutput.firstChild);
+        }
+      });
+
+      // Theme switching
+      themeSelector.addEventListener('change', function () {
+        const theme = this.value;
+        switch (theme) {
+          case 'light':
+            document.documentElement.style.setProperty('--primary-color', '#ffffff');
+            document.documentElement.style.setProperty('--secondary-color', '#f3f3f3');
+            document.documentElement.style.setProperty('--text-color', '#333333');
+            document.documentElement.style.setProperty('--border-color', '#dddddd');
+            document.documentElement.style.setProperty('--accent-color', '#007acc');
+            break;
+          case 'monokai':
+            document.documentElement.style.setProperty('--primary-color', '#272822');
+            document.documentElement.style.setProperty('--secondary-color', '#1e1f1c');
+            document.documentElement.style.setProperty('--text-color', '#f8f8f2');
+            document.documentElement.style.setProperty('--border-color', '#75715e');
+            document.documentElement.style.setProperty('--accent-color', '#a6e22e');
+            break;
+          case 'solarized':
+            document.documentElement.style.setProperty('--primary-color', '#002b36');
+            document.documentElement.style.setProperty('--secondary-color', '#073642');
+            document.documentElement.style.setProperty('--text-color', '#93a1a1');
+            document.documentElement.style.setProperty('--border-color', '#586e75');
+            document.documentElement.style.setProperty('--accent-color', '#b58900');
+            break;
+          default:
+            document.documentElement.style.setProperty('--primary-color', '#1e1e1e');
+            document.documentElement.style.setProperty('--secondary-color', '#252526');
+            document.documentElement.style.setProperty('--text-color', '#d4d4d4');
+            document.documentElement.style.setProperty('--border-color', '#454545');
+            document.documentElement.style.setProperty('--accent-color', '#007acc');
+        }
+        showNotification(`Theme changed to ${theme}`);
+      });
+
+      // Save functionality
+      saveBtn.addEventListener('click', function () {
+        const projectName = prompt('Enter project name:', 'Untitled Project') || 'Untitled Project';
+        const project = {
+          html: htmlEditor.value,
+          css: cssEditor.value,
+          js: jsEditor.value,
+          name: projectName,
+          timestamp: new Date().toISOString()
+        };
+        localStorage.setItem('codeCompilerProject_' + projectName, JSON.stringify(project));
+        showNotification(`Project "${projectName}" saved successfully`);
+      });
+
+      // Load functionality
+      loadBtn.addEventListener('click', function () {
+        const projects = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key.startsWith('codeCompilerProject_')) {
+            projects.push(key.replace('codeCompilerProject_', ''));
+          }
+        }
+        if (projects.length === 0) {
+          showNotification('No saved projects found', 'warning');
+          return;
+        }
+        const projectList = projects.map(p => `ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ ${p}`).join('\n');
+        const projectName = prompt(`Enter project name to load:\nSaved projects:\n${projectList}`);
+        if (projectName) {
+          const key = 'codeCompilerProject_' + projectName;
+          const savedProject = localStorage.getItem(key);
+          if (savedProject) {
+            const project = JSON.parse(savedProject);
+            htmlEditor.value = project.html;
+            cssEditor.value = project.css;
+            jsEditor.value = project.js;
+            showNotification(`Project "${projectName}" loaded successfully`);
+          } else {
+            showNotification('Project not found', 'error');
+          }
+        }
+      });
+
+      // Keyboard shortcut (Ctrl+Enter)
+      document.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          runCode();
+        }
+      });
+
+      // Cursor position tracking
+      function updateCursorPosition() {
+        const editor = document.querySelector('.code-editor.active');
+        if (!editor) return;
+        const pos = editor.selectionStart;
+        const lines = editor.value.substr(0, pos).split("\n");
+        const row = lines.length;
+        const col = lines[lines.length - 1].length + 1;
+   //     lineCol.textContent = `Line: ${row}, Col: ${col}`;
+      }
+
+      codeEditors.forEach(editor => {
+        editor.addEventListener('input', updateCursorPosition);
+        editor.addEventListener('click', updateCursorPosition);
+      });
+
+      // File size display
+      function updateFileSize() {
+        const totalSize = htmlEditor.value.length + cssEditor.value.length + jsEditor.value.length;
+     //   document.getElementById('file-size').textContent = ` | ${(totalSize / 1024).toFixed(2)} KB`;
+      }
+      updateFileSize();
+      htmlEditor.addEventListener('input', updateFileSize);
+      cssEditor.addEventListener('input', updateFileSize);
+      jsEditor.addEventListener('input', updateFileSize);
+
+      // Resize handle functionality
+      let isResizing = false;
+
+      resizeHandle.addEventListener('mousedown', function (e) {
+        isResizing = true;
+        document.body.style.cursor = 'col-resize';
+      });
+
+      document.addEventListener('mousemove', function (e) {
+        if (!isResizing) return;
+        const container = document.querySelector('.container');
+        const editorContainer = document.querySelector('.editor-container');
+        const x = e.clientX;
+        const newWidth = x - container.offsetLeft;
+        if (newWidth > 100 && newWidth < window.innerWidth - 100) {
+          editorContainer.style.width = `${newWidth}px`;
+        }
+      });
+
+      document.addEventListener('mouseup', function () {
+        isResizing = false;
+        document.body.style.cursor = 'default';
+      });
+
+    });
+  </script>
+</body>
+</html>
